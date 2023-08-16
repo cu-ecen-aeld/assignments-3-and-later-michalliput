@@ -18,5 +18,16 @@ void test_validate_my_username()
      * TODO: Replace the line below with your code here as described above to verify your /conf/username.txt 
      * config file and my_username() functions are setup properly
      */
-    TEST_ASSERT_TRUE_MESSAGE(false,"AESD students, please fix me!");
+    //const int username_max_n_of_chars = 256;
+    const char *username_hcoded_ptr;
+    const char *username_real_ptr;
+
+    username_hcoded_ptr = my_username();
+    username_real_ptr = malloc_username_from_conf_file();
+
+    // optional:
+    //printf("\nUsername hardcoded: %s\n------\n", username_hcoded_ptr);
+    //printf("\nUsername real: %s\n------\n", username_real_ptr);
+
+    TEST_ASSERT_EQUAL_STRING_MESSAGE(username_hcoded_ptr, username_real_ptr, "STRINGS NOT EQUAL - CHECK INPUT");
 }
