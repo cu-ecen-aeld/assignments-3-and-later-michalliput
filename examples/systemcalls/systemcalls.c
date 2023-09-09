@@ -1,4 +1,8 @@
 #include "systemcalls.h"
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <fcntl.h>
 
 /**
  * @param cmd the command to execute with system()
@@ -16,8 +20,19 @@ bool do_system(const char *cmd)
  *   and return a boolean true if the system() call completed with success
  *   or false() if it returned a failure
 */
+    int cmd_retval = -1;
+    bool retval = false;
 
-    return true;
+    /* Execute a system command and get result */
+    cmd_retval = system(cmd);
+
+    /* Analyze result */
+    if (0 == cmd_retval)
+    {
+        retval = true;
+    }
+    
+    return retval;
 }
 
 /**
@@ -58,10 +73,27 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
+    bool retval = false;
+    int exec_status = -1;
+    int cmd_status = -1;
+
+    /* Create a child process */
+    fork();
+    
+    /* Execute with parameters */
+    exec_status = execv(command[0], &(command[1]));
+
+    /* Wait for children */
+    wait(&cmd_status);
 
     va_end(args);
 
-    return true;
+    if ((0 == exec_status) && (0 == cmd_status))
+    {
+        retval = true;
+    }
+
+    return retval;
 }
 
 /**
@@ -92,8 +124,35 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
+    bool retval = false;
+    int exec_status = -1;
+    int cmd_status = -1;
+    int fd = -1;
+    
+    /* Open/create file for output redirection */
+    fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
+
+    /* Create a child process */
+    fork();
+
+    /* Redirect? */
+    dup2(fd, 1);
+
+    /* Close file before command execution */
+    close(fd);
+    
+    /* Execute with parameters */
+    exec_status = execv(command[0], &(command[1]));
+
+    /* Wait for children */
+    wait(&cmd_status);
+
+    if ((0 == exec_status) && (0 == cmd_status))
+    {
+        retval = true;
+    }
 
     va_end(args);
 
-    return true;
+    return retval;
 }
