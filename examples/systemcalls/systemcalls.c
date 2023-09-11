@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <errno.h>
 
 /**
  * @param cmd the command to execute with system()
@@ -27,6 +28,7 @@ bool do_system(const char *cmd)
     cmd_retval = system(cmd);
 
     /* Analyze result */
+    printf("\n\ncmd_retval: %d\n\n", cmd_retval);
     if (0 == cmd_retval)
     {
         retval = true;
@@ -74,24 +76,66 @@ bool do_exec(int count, ...)
  *
 */
     bool retval = false;
-    int exec_status = -1;
+    int retval_child = -1;
+    int fork_status = 0;
+    int exec_status = -2;
     int cmd_status = -1;
+    int wait_status = 0;
+
+    printf("\n\n------------\ndo_exec()\n");
+    printf("\ncount: %d \ncommands:\n",count);
+    for (i = 0; i < count; i++)
+    {
+        printf("%s\n",command[i]);
+    }
 
     /* Create a child process */
-    fork();
+    fork_status = fork();
+    printf("\n-->fork_status: %d   errno: %d", fork_status, errno);
     
-    /* Execute with parameters */
-    exec_status = execv(command[0], &(command[1]));
+    if (fork_status >= 0)
+    {
+        if (0 == fork_status)
+        {
+            /* Child process */
+            printf("\n\nChild:\n");
+            retval_child = 1U;
 
-    /* Wait for children */
-    wait(&cmd_status);
+            printf("\nexecution of child process...\n");
+
+            /* Execute command */
+            exec_status = execv(command[0], &command[0]);
+            /* Error */
+            printf("\n!!! execv() error !!!: %d   errno: %d\n\n", exec_status, errno);            
+            exit(retval_child);
+        }
+        else
+        {
+            /* Parent process */
+            printf("\n\nParent:\n");
+            printf("\n-->child PID: %d", fork_status);
+            
+            /* Wait for children */
+            wait_status = waitpid(fork_status, &cmd_status, 0);
+            printf("\n-->wait_status: %d   errno: %d", wait_status, errno);
+            printf("\n-->cmd_status: %d   errno: %d", cmd_status, errno);
+            if ((wait_status > 0) && (0 == cmd_status))
+            {
+                retval = true;
+            }
+            else
+            {
+                retval = false;
+            }
+            printf("\n-->parent retval: %d\n\n", retval);
+        }
+    }
+    else
+    {
+        printf("\n\n!!! fork() error! !!!\n\n");
+    }
 
     va_end(args);
-
-    if ((0 == exec_status) && (0 == cmd_status))
-    {
-        retval = true;
-    }
 
     return retval;
 }
@@ -125,32 +169,73 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *
 */
     bool retval = false;
-    int exec_status = -1;
+    int retval_child = -1;
+    int fork_status = 0;
+    int exec_status = -2;
     int cmd_status = -1;
+    int wait_status = 0;
     int fd = -1;
-    
+
+    printf("\n\n------------\ndo_exec_redirect()\n");
+
     /* Open/create file for output redirection */
     fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
 
     /* Create a child process */
-    fork();
+    fork_status = fork();
+    printf("\n-->fork_status: %d   errno: %d", fork_status, errno);
 
-    /* Redirect? */
-    dup2(fd, 1);
-
-    /* Close file before command execution */
-    close(fd);
-    
-    /* Execute with parameters */
-    exec_status = execv(command[0], &(command[1]));
-
-    /* Wait for children */
-    wait(&cmd_status);
-
-    if ((0 == exec_status) && (0 == cmd_status))
+    if (fork_status >= 0)
     {
-        retval = true;
+        if (0 == fork_status)
+        {
+            /* Child process */
+            printf("\n\nChild:\n");
+            retval_child = 1U;
+
+            /* Redirect */
+            printf("redirection");
+            fflush(stdout);
+            dup2(fd, 1);
+            /* Close file before command execution */
+            close(fd);
+            
+            
+            //printf("\nexecution of child process...\n");
+
+            /* Execute command */
+            exec_status = execv(command[0], &command[0]);
+            
+            /* Error */
+            printf("\n!!! execv() error !!!: %d   errno: %d\n\n", exec_status, errno);            
+            exit(retval_child);
+        }
+        else
+        {
+            /* Parent process */
+            printf("\n\nParent:\n");
+            printf("\n-->child PID: %d", fork_status);
+            
+            /* Wait for children */
+            wait_status = waitpid(fork_status, &cmd_status, 0);
+            printf("\n-->wait_status: %d   errno: %d", wait_status, errno);
+            printf("\n-->cmd_status: %d   errno: %d", cmd_status, errno);
+            if ((wait_status > 0) && (0 == cmd_status))
+            {
+                retval = true;
+            }
+            else
+            {
+                retval = false;
+            }
+            printf("\n-->parent retval: %d\n\n", retval);
+        }
     }
+    else
+    {
+        printf("\n\n!!! fork() error! !!!\n\n");
+    }
+
 
     va_end(args);
 
