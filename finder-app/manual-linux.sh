@@ -130,15 +130,15 @@ echo "Add library dependencies to rootfs"
 # TODO: Make device nodes
 echo "Making device nodes"
 cd "${OUTDIR}/rootfs"
-if [ ! -e "dev/null" ]; then
-    sudo mknod -m 777 dev/null c 1 3
-fi
-if [ ! -e "dev/console" ]; then
-    sudo mknod -m 777 dev/console c 5 1
-fi
-if [ ! -e "dev/tty" ]; then
-    sudo mknod -m 777 dev/tty c 5 0
-fi
+#if [ ! -e "dev/null" ]; then
+    sudo mknod -m 666 dev/null c 1 3
+#fi
+#if [ ! -e "dev/console" ]; then
+    sudo mknod -m 666 dev/console c 5 1
+#fi
+#if [ ! -e "dev/tty" ]; then
+#    sudo mknod -m 666 dev/tty c 5 0
+#fi
 
 # TODO: Clean and build the writer utility
 echo "Cleaning and building writer"
@@ -168,3 +168,4 @@ cd "$OUTDIR/rootfs"
 sudo find .| cpio -H newc -ov --owner root:root > ${OUTDIR}/initramfs.cpio
 cd "$OUTDIR"
 sudo gzip -f initramfs.cpio
+sudo chmod 777 initramfs.cpio.gz
